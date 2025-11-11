@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Roda Bom dan Cokelat — Game Edukatif</title>
+  <style>
+    body{font-family:Inter,system-ui;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#fff8f0;color:#222;margin:0;position:relative}
+    h1{margin-bottom:10px}
+    canvas{border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+    button{margin-top:20px;background:#8d6e63;color:#fff;padding:10px 16px;border:none;border-radius:8px;cursor:pointer;font-size:1rem}
+    button:disabled{opacity:0.5;cursor:not-allowed}
+    #message{margin-top:16px;font-size:1.1rem;min-height:1.5em;text-align:center}
+    #pointer{
+      width:0;height:0;
+      border-top:15px solid transparent;
+      border-bottom:15px solid transparent;
+      border-left:25px solid #d32f2f;
+      position:absolute;
+      top:calc(50% - 15px);
+      left:calc(50% + 165px);
+      z-index:2;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍫 Roda Bom dan Cokelat</h1>
+  <p style="max-width:480px;text-align:center">Putar roda untuk mencoba keberuntunganmu. Ada hadiah cokelat 🍫 dan bom 💣. Tapi ingat — di dunia judi, <b>roda selalu diatur</b> agar kamu lebih sering kena bom!</p>
+
+  <canvas id="wheel" width="300" height="300"></canvas>
+  <div id="pointer"></div>
+  <button id="spinBtn">Putar Sekarang</button>
+  <div id="message"></div>
+
+  <script>
+    const canvas=document.getElementById('wheel');
+    const ctx=canvas.getContext('2d');
+    const spinBtn=document.getElementById('spinBtn');
+    const message=document.getElementById('message');
+
+    // Variabel kontrol hasil — jika true maka pemain bisa dapat cokelat, jika false selalu bom
+    let allowWin = false; // ubah ke true jika ingin bisa dapat cokelat
+
+    const segments=[
+      {label:'🍫 Cokelat', color:'#d7ccc8', type:'win'},
+      {label:'💣 Bom', color:'#ef9a9a', type:'lose'},
+      {label:'🍫 Cokelat', color:'#d7ccc8', type:'win'},
+      {label:'💣 Bom', color:'#ef9a9a', type:'lose'},
+      {label:'💣 Bom', color:'#ef9a9a', type:'lose'},
+      {label:'🍫 Cokelat', color:'#d7ccc8', type:'win'},
+      {label:'💣 Bom', color:'#ef9a9a', type:'lose'},
+      {label:'💣 Bom', color:'#ef9a9a', type:'lose'}
+    ];
+
+    let startAngle=0;
+    const arc=(2*Math.PI)/segments.length;
+
+    function drawWheel(){
+      segments.forEach((seg,i)=>{
+        const angle=startAngle+i*arc;
+        ctx.beginPath();
+        ctx.fillStyle=seg.color;
+        ctx.moveTo(150,150);
+        ctx.arc(150,150,150,angle,angle+arc);
+        ctx.lineTo(150,150);
+        ctx.fill();
+        ctx.save();
+        ctx.translate(150,150);
+        ctx.rotate(angle+arc/2);
+        ctx.textAlign='left';
+        ctx.fillStyle='#000';
+        ctx.font='bold 16px Inter';
+        ctx.fillText(seg.label,20,5);
+        ctx.restore();
+      });
+    }
+
+    drawWheel();
+
+    let spinning=false;
+
+    function riggedResult(){
+      if(!allowWin) return 'lose'; // kalau tidak diizinkan, selalu kalah
+      return Math.random()<0.9 ? 'lose' : 'win';
+    }
+
+    spinBtn.addEventListener('click',()=>{
+      if(spinning)return;
+      spinning=true;
+      spinBtn.disabled=true;
+      message.textContent='Memutar...';
+
+      const resultType=riggedResult();
+      const candidates=segments.filter(s=>s.type===resultType);
+      const target=candidates[Math.floor(Math.random()*candidates.length)];
+      const index=segments.indexOf(target);
+
+      const finalAngle=(2*Math.PI*3)+(index*arc);
+      let rot=0;
+      const totalFrames=100;
+
+      function animate(frame){
+        const ease=1-Math.pow(1-frame/totalFrames,3);
+        rot=finalAngle*ease;
+        ctx.clearRect(0,0,300,300);
+        startAngle=rot;
+        drawWheel();
+        if(frame<totalFrames){
+          requestAnimationFrame(()=>animate(frame+1));
+        }else{
+          spinning=false;
+          spinBtn.disabled=false;
+          showResult(target);
+        }
+      }
+      animate(0);
+    });
+
+    function showResult(seg){
+      if(seg.type==='win'){
+        message.innerHTML='🎉 Kamu mendapat <b>Cokelat!</b> Tapi apakah kamu bisa terus menang?';
+      }else{
+        message.innerHTML='💣 Boom! Kamu kena bom!<br><small>Inilah yang terjadi di dunia judi — kamu lebih sering kalah daripada menang.</small>';
+      }
+    }
+  </script>
+</body>
+</html>
